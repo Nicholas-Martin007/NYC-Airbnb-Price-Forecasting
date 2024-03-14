@@ -36,7 +36,9 @@ def loadScaler(lat, long, log_price):
 
 def one_hot_encoder(data='Airbnb_Data.csv', category_target=None):
     
-    df = pd.read_csv(data)
+    if isinstance(data, str): df = pd.read_csv(data)
+    else: df = data
+
     if category_target == None:
         print("No category to be one hot encoding")
         return
@@ -66,14 +68,10 @@ def find_optimal_cluster(df, max_cluster=10, target_cluster=None):
     if target_cluster is None or df[target_cluster].empty: return
 
     data = df[target_cluster]
-
     sum_squared_error = []
 
     # print(target_cluster)
     k = range(1, max_cluster+1)
-    if target_cluster == ['property_type']:
-        data = one_hot_encoder(category_target=['property_type'])
-    
     
     # Insert into SSE
     for i in k:
@@ -81,16 +79,16 @@ def find_optimal_cluster(df, max_cluster=10, target_cluster=None):
         sum_squared_error.append(cluster.inertia_)
     
     # Plot to know the direction and curve
-    plt.plot(k, sum_squared_error, marker='o')
-    plt.xlabel('Number of Clusters')
-    plt.ylabel('Sum of Squared Errors (SSE)')
-    plt.title('Elbow Method for Optimal Cluster Number')
-    plt.show()
+    # plt.plot(k, sum_squared_error, marker='o')
+    # plt.xlabel('Number of Clusters')
+    # plt.ylabel('Sum of Squared Errors (SSE)')
+    # plt.title('Elbow Method for Optimal Cluster Number')
+    # plt.show()
 
     # After plotted, direction="decreasing" and curve="convex"
     elbow_locator = KneeLocator(x=k, y=sum_squared_error, direction="decreasing", curve="convex")
     elbow_point = elbow_locator.knee - 1
-    # print(elbow_point)
+    print(elbow_point)
     return elbow_point
     
     

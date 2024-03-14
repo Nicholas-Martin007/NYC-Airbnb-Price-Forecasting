@@ -87,17 +87,42 @@ def train_pipeline(data, split_ratio=0.2, models=None):
     train_data, test_data = train_test_split(data, test_size=split_ratio, random_state=42)
     
     # Clustering lat_long using Elbow Method
-    lat_long_n_clusters = find_optimal_cluster(train_data, max_cluster=10, target_cluster=['latitude', 'longitude'])
-    cluster_lat_long = KMeans(n_clusters=lat_long_n_clusters, init='k-means++', max_iter=500, random_state=42).fit(train_data[['latitude', 'longitude']])
+    target_cluster = [
+        ['latitude', 'longitude'],
+        ['property_type_Bed & Breakfast', 'property_type_Boat',
+         'property_type_Boutique hotel', 'property_type_Bungalow',
+         'property_type_Cabin', 'property_type_Camper/RV',
+         'property_type_Casa particular', 'property_type_Castle',
+         'property_type_Cave', 'property_type_Chalet',
+         'property_type_Condominium', 'property_type_Dorm',
+         'property_type_Earth House', 'property_type_Guest suite',
+         'property_type_Guesthouse', 'property_type_Hostel',
+         'property_type_House', 'property_type_Hut', 'property_type_In-law',
+         'property_type_Island', 'property_type_Lighthouse',
+         'property_type_Loft', 'property_type_Other',
+         'property_type_Parking Space', 'property_type_Serviced apartment',
+         'property_type_Tent', 'property_type_Timeshare', 'property_type_Tipi',
+         'property_type_Townhouse', 'property_type_Train',
+         'property_type_Treehouse', 'property_type_Vacation home',
+         'property_type_Villa', 'property_type_Yurt'],
+    ]
+    lat_long_n_clusters = find_optimal_cluster(train_data, max_cluster=10, target_cluster=target_cluster[0])
+    cluster_lat_long = KMeans(n_clusters=lat_long_n_clusters, init='k-means++', max_iter=500, random_state=42).fit(train_data.drop(target_cluster[0], axis=1))
     dump(cluster_lat_long, open('models/cluster_lat_long.pkl', 'wb'))
-
-
-
-    property_type_n_clusters = find_optimal_cluster(train_data, max_cluster=10, target_cluster=['property_type'])
-    cluster_property_type = KMeans(n_clusters=property_type_n_clusters, init='k-means++', max_iter=500, random_state=42).fit(one_hot_encoder(data='Airbnb_Data.csv', category_target=['property_type']))
+    
+    property_type_n_clusters = find_optimal_cluster(train_data, max_cluster=10, target_cluster=target_cluster[1])
+    cluster_property_type = KMeans(n_clusters=property_type_n_clusters, init="k-means++", max_iter=500, random_state=42).fit(train_data.drop(target_cluster[1], axis=1))
     dump(cluster_property_type, open('models/cluster_property_type.pkl', 'wb'))
 
-    
+    # Predict Cluster on train_data + test_data
+    train_data['cluster_lat_long'] = cluster_lat_long.predict(train_data.drop(target_cluster[0], axis=1))
+    test_data['cluster_lat_long'] = cluster_lat_long.predict(test_data.drop(target_cluster[0], axis=1))
+
+    train_data['cluster_property_type'] = cluster_property_type.predict(train_data.drop(target_cluster[1], axis=1).drop('cluster_lat_long', axis=1))
+    test_data['cluster_property_type'] = cluster_property_type.predict(test_data.drop(target_cluster[1], axis=1).drop('cluster_lat_long', axis=1))
+
+    train_data.drop(target_cluster[0], axis=1).drop(target_cluster[1], axis=1)
+    test_data.drop(target_cluster[0], axis=1).drop(target_cluster[1], axis=1)
 
     # X_train, y_train, X_test, y_test = train_data.drop('log_price', axis=1), train_data['log_price'], test_data.drop('log_price', axis=1), test_data['log_price']
 
@@ -105,10 +130,11 @@ def train_pipeline(data, split_ratio=0.2, models=None):
     
 if __name__ == '__main__':
     
-    data = pd.read_csv('Airbnb_Data.csv')
-    encoded_data = one_hot_encoder('Airbnb_Data.csv', category_target=['room_type', 'bed_type'])
-
-    clean_data(concat_data(data, encoded_data, category_target=['room_type', 'bed_type']))
+    # data = pd.read_csv('Airbnb_Data.csv')
+    
+    # target_encode = ['room_type', 'bed_type', 'property_type']
+    # encoded_data = one_hot_encoder('Airbnb_Data.csv', category_target=target_encode)
+    # clean_data(concat_data(data, encoded_data, target_encode))
 
     df = pd.read_csv('data_clean.csv')
 
